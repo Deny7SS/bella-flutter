@@ -36,7 +36,7 @@ class RegisterPage extends StatelessWidget {
             ),
           ],
         ),
-      );
+      ),
     );
   }
 }

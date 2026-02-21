@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bella_app/core/routes/app_router.dart';
-import 'package:bella_app/core/styles/app_theme.dart';
+import 'package:bella_app/core/themes/app_theme.dart';
 import 'package:bella_app/core/utils/logger.dart';
 
 void main() {

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Player</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: #000; color: #fff; font-family: monospace; height: 100%; overflow: hidden; }
+
+    #container { display: flex; flex-direction: column; height: 100vh; }
+
+    video {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      background: #000;
+      object-fit: contain;
+    }
+
+    #info {
+      background: rgba(0,0,0,0.85);
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+
+    #title { font-size: 14px; font-weight: bold; color: #fff; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    #progress-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    #progress-bar {
+      flex: 1;
+      height: 3px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #progress-fill {
+      height: 100%;
+      background: #a855f7;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.5s linear;
+    }
+
+    #time { font-size: 10px; color: rgba(255,255,255,0.45); white-space: nowrap; }
+
+    #status {
+      font-size: 10px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 4px;
+      height: 12px;
+    }
+
+    #error-msg {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    #error-msg p { font-size: 13px; color: rgba(255,255,255,0.5); }
+    #error-msg .code { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div id="container">
+  <video id="v" controls playsinline autoplay controlslist="nodownload"></video>
+  <div id="info">
+    <div id="title">Carregando...</div>
+    <div id="progress-bar-wrap">
+      <div id="progress-bar"><div id="progress-fill"></div></div>
+      <div id="time">--:-- / --:--</div>
+    </div>
+    <div id="status">Conectando...</div>
+  </div>
+</div>
+
+<script>
+  // ─── Parse URL params ───────────────────────────────────────────────
+  const params   = new URLSearchParams(location.search);
+  const videoUrl  = params.get("url")     || "";
+  const userId    = params.get("uid")     || "";
+  const token     = params.get("token")   || "";
+  const contentId = params.get("cid")     || videoUrl;
+  const title     = params.get("title")   || "Reproduzindo";
+  const supaUrl   = params.get("supa_url") || "https://fizcmvavzgoaznzindwl.supabase.co";
+  const supaKey   = params.get("supa_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpemNtdmF2emdvYXpuemluZHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5Mzc1MzMsImV4cCI6MjA4NjUxMzUzM30.xHcnS9LZU71krTMiHYq082zbi9cSQpCkWkR73_MjKPE";
+
+  const video     = document.getElementById("v");
+  const titleEl   = document.getElementById("title");
+  const fillEl    = document.getElementById("progress-fill");
+  const timeEl    = document.getElementById("time");
+  const statusEl  = document.getElementById("status");
+
+  titleEl.textContent = title;
+
+  // ─── Load video ─────────────────────────────────────────────────────
+  if (videoUrl) {
+    video.src = videoUrl;
+  } else {
+    statusEl.textContent = "Nenhum link fornecido";
+  }
+
+  // ─── Format seconds → mm:ss ─────────────────────────────────────────
+  function fmt(s) {
+    if (!isFinite(s) || s < 0) return "--:--";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+  }
+
+  // ─── Update UI ──────────────────────────────────────────────────────
+  video.addEventListener("timeupdate", () => {
+    const cur = video.currentTime;
+    const dur = video.duration;
+    const pct = dur > 0 ? (cur / dur) * 100 : 0;
+    fillEl.style.width = pct + "%";
+    timeEl.textContent = `${fmt(cur)} / ${fmt(dur)}`;
+  });
+
+  video.addEventListener("loadstart", () => { statusEl.textContent = "Carregando stream..."; });
+  video.addEventListener("canplay",   () => { statusEl.textContent = ""; });
+  video.addEventListener("playing",   () => { statusEl.textContent = ""; });
+  video.addEventListener("waiting",   () => { statusEl.textContent = "Buffering..."; });
+  video.addEventListener("error",     () => {
+    const e = video.error;
+    statusEl.textContent = `Erro: ${e ? e.message : "desconhecido"} (código ${e?.code})`;
+  });
+
+  // ─── Persist progress to Supabase ───────────────────────────────────
+  let lastSaved = -1;
+
+  async function saveProgress() {
+    if (!userId || !videoUrl) return;
+    const cur = Math.floor(video.currentTime);
+    const dur = Math.floor(video.duration) || null;
+    if (cur < 5 || cur === lastSaved) return;  // skip if less than 5s played or unchanged
+    lastSaved = cur;
+
+    const authHeader = token
+      ? { "Authorization": `Bearer ${token}` }
+      : { "apikey": supaKey };
+
+    try {
+      await fetch(`${supaUrl}/rest/v1/iptv_progresso`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates",
+          "apikey": supaKey,
+          ...authHeader,
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          content_id: contentId,
+          content_title: title,
+          posicao_segundos: cur,
+          duracao_segundos: dur,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      // silencioso
+    }
+  }
+
+  // Salva a cada 5 segundos
+  setInterval(saveProgress, 5000);
+
+  // Salva ao sair/fechar
+  window.addEventListener("beforeunload", saveProgress);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) saveProgress();
+  });
+</script>
+</body>
+</html>

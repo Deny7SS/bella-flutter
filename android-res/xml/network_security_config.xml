@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Permite tráfego HTTP cleartext para todos os domínios.
+  Necessário para reprodução de streams IPTV via HTTP no Android 9+.
+  Este arquivo é copiado para android/app/src/main/res/xml/ pelo workflow do GitHub Actions.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

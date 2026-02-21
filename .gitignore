@@ -1,0 +1,55 @@
+# Flutter
+flutter/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Android
+android/
+
+# iOS
+ios/
+
+# Web
+web/
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Coverage
+coverage/
+
+# Node (se houver)
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+*.apk
+*.aab
+*.ipa
+*.dmg
+
+# Temporary files
+*.tmp
+*.temp

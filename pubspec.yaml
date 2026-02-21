@@ -36,7 +36,7 @@ dependencies:
   formz: ^0.5.0
   
   # Audio/Video
-  just_audio: ^0.10.1
+  just_audio: ^0.9.46
   audio_service: ^0.18.9
   video_player: ^2.8.2
   chewie: ^1.7.0

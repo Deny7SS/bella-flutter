@@ -2,6 +2,7 @@
 flutter/
 .dart_tool/
 .packages
+pubspec.lock
 .pub-cache/
 .pub/
 build/

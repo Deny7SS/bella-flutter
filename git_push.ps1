@@ -1,3 +1,3 @@
 git add .
-git commit -m "fix:icon"
+git commit -m "feat: Initialize Supabase and AuthCubit"
 git push

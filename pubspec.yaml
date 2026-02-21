@@ -54,7 +54,7 @@ dependencies:
   syncfusion_flutter_pdf: ^24.1.46
   
   # Games & Interactive
-  flutter_flame: ^1.14.0
+  flame: ^1.16.0
 
 dev_dependencies:
   flutter_test:

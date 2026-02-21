@@ -1,3 +1,3 @@
 git add .
-git commit -m "chore:ensure push works"
+git commit -m "fix:icon"
 git push
